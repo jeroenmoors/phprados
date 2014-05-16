@@ -61,8 +61,16 @@ zend_object_value rados_create_handler(zend_class_entry *type TSRMLS_DC) {
 
     ALLOC_HASHTABLE(obj->std.properties);
     zend_hash_init(obj->std.properties, 0, NULL, ZVAL_PTR_DTOR, 0);
-    zend_hash_copy(obj->std.properties, &type->default_properties,
-        (copy_ctor_func_t)zval_add_ref, (void *)&tmp, sizeof(zval *));
+ 
+	#if PHP_VERSION_ID < 50399
+		zend_hash_copy(obj->std.properties, &(type->default_properties),
+			(copy_ctor_func_t) zval_add_ref, NULL, sizeof(zval*));
+	#else
+		object_properties_init(&obj->std, type);
+	#endif
+ 
+    //zend_hash_copy(obj->std.properties, &type->default_properties,
+    //    (copy_ctor_func_t)zval_add_ref, (void *)&tmp, sizeof(zval *));
 
     retval.handle = zend_objects_store_put(obj, NULL, rados_free_storage, NULL TSRMLS_CC);
     retval.handlers = &rados_object_handlers;
@@ -307,7 +315,7 @@ PHP_METHOD(Rados, getLastError) {
 }
 
 
-function_entry rados_methods[] = {
+const zend_function_entry rados_methods[] = {
     PHP_ME(Rados,   __construct,     NULL, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     PHP_ME(Rados,   connect,         NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Rados,   setOption,         NULL, ZEND_ACC_PUBLIC)
